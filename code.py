@@ -58,17 +58,16 @@ def print_settings_banner():
     print('# ' + ('=' * (len(heading)-2)))
 
 
-def wifi_connect(retries=5):
+def wifi_connect():
     # Try to connect to wifi
     if WIFI_SSID and WIFI_PASSWORD:
-        for _ in range(retries):
-            try:
-                wifi.radio.connect(ssid=WIFI_SSID, password=WIFI_PASSWORD)
-                ip = wifi.radio.ipv4_address
-                return ip
-            except ConnectionError as e:
-                print(e)
-    return False
+        try:
+            wifi.radio.connect(ssid=WIFI_SSID, password=WIFI_PASSWORD)
+            ip = wifi.radio.ipv4_address
+            return ip
+        except ConnectionError as e:
+            print(e)
+    return None
 
 
 def run():

@@ -20,7 +20,7 @@ class IRCBot:
         self.port = port
         self.connected = False
         self.registered = False
-        self.connect_timeout = 30
+        self.connect_timeout = 10
         self._recv_line_iterator = None
         self.irc_re = re.compile(
             br'^((:\S+)\s+)?'      # optional prefix   (match group 2)
@@ -39,8 +39,12 @@ class IRCBot:
             self._recv_line_iterator = self._recv_line_gen()
             self.connected = True
         except OSError as e:
-            # Exceptions I've seen trigger this:
+            # Exceptions I've seen trigger this (bad port, bad IP, etc):
+            # - OSError: [Errno 104] ECONNRESET
+            # - OSError: [Errno 116] ETIMEDOUT
             # - OSError: [Errno 118] EHOSTUNREACH
+            # - OSError: [Errno 120] EALREADY
+            # - OSError: [Errno 128] ENOTCONN
             print('ERR connect: "%s", errno=%d', e, e.errno)
             self.connected = False
 
