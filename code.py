@@ -4,18 +4,14 @@
 # See NOTES.md for documentation links and pinout info.
 #
 import board
-import displayio
 from microcontroller import cpu
 from micropython import const
 import os
-import time
 import wifi
 
 from sb_CharDisplay import CharDisplay
 from sb_IRCBot import IRCBot
 
-
-HMAC_TRUNC = const(4)    # size in bytes of truncated hash (similar to HOTP)
 
 # ---------------------------------------------------------------------------
 # Options for settings.toml
@@ -24,7 +20,6 @@ HMAC_TRUNC = const(4)    # size in bytes of truncated hash (similar to HOTP)
 # - `WIFI_PASSWORD = "the password"` set password for your wifi
 # - `IRC_SERVER = "<some IP address>"` set IP address for your IRC server
 # - `IRC_NICK = "<nickname>"` set nickname to use for your IRC server
-# - `HMAC_KEY = "<whatever>"` set shared HMAC key for verifying messages
 #
 ILI9341_DISPLAY = False
 if (val := os.getenv("ILI9341_DISPLAY")) is not None:
@@ -44,9 +39,6 @@ if (val := os.getenv("IRC_NICK")) is not None:
 IRC_CHAN = None
 if (val := os.getenv("IRC_CHAN")) is not None:
     IRC_CHAN = str(val)
-HMAC_KEY = None
-if (val := os.getenv("HMAC_KEY")) is not None:
-    HMAC_KEY = str(val)
 # ---------------------------------------------------------------------------
 
 
@@ -62,7 +54,6 @@ def print_settings_banner():
     print('# IRC_SERVER: [%s]' % (m if IRC_SERVER is None else 'ok'))
     print('# IRC_NICK: [%s]' % (m if IRC_NICK is None else 'ok'))
     print('# IRC_CHAN: [%s]' % (m if IRC_CHAN is None else 'ok'))
-    print('# HMAC_KEY: [%s]' % (m if HMAC_KEY is None else 'ok'))
     print('# ' + ('=' * (len(heading)-2)))
 
 
@@ -110,8 +101,6 @@ def run():
     ok = irc.connect()
 
     # Main loop
-    EXPECTED_SIZE = 4 + 6 + HMAC_TRUNC    # size of header + message + MAC
-    seq_list = {}
     while True:
         while (line := irc.recv_line()) is not None:
             (prefix, cmd, params) = line
