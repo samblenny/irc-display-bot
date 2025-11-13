@@ -1,8 +1,10 @@
 <!-- SPDX-License-Identifier: MIT -->
 <!-- SPDX-FileCopyrightText: Copyright 2025 Sam Blenny -->
-# IRC Dashboard Gadget
+# IRC Display Bot
 
 **DRAFT: WORK IN PROGRESS**
+
+CircuitPython IRC bot to show status notifications on a small dedicated screen.
 
 
 ## Set Up Raspberry Pi OS with IRC Server
