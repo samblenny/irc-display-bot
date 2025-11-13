@@ -89,13 +89,15 @@ class CharDisplay:
             lines.append(text[start:])
         return '\n'.join(lines)
 
-    def show_msg(self, txt, hardwrap=False):
+    def show_msg(self, txt, wrap=None):
         # Show the message text on available display
         print(txt)
-        if hardwrap:
+        if wrap == 'hard':
             wrapped = self.hard_wrap(txt)
-        else:
+        elif wrap == 'word' or wrap is None:
             wrapped = self.word_wrap(txt)
+        elif wrap == 'pre':
+            wrapped = txt
         if self.display and self.textbox:
             self.textbox.text = wrapped
             self.display.refresh()
