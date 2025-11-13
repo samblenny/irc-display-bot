@@ -18,6 +18,9 @@ class IRCBot:
         self.chan = chan
         self.server = server
         self.port = port
+        self.connected = False
+        self.registered = False
+        self.connect_timeout = 30
         self._recv_line_iterator = None
         self.irc_re = re.compile(
             br'^((:\S+)\s+)?'      # optional prefix   (match group 2)
@@ -25,26 +28,44 @@ class IRCBot:
             br'(.*)'               # params            (match group 4)
         )
 
-    def connect(self, timeout=30):
-        self.sock.settimeout(timeout)
+    def close(self):
+        self.sock.close()
+        self.connected = False
+
+    def connect(self):
         try:
+            self.sock.settimeout(self.connect_timeout)
             self.sock.connect((self.server, self.port))
             self._recv_line_iterator = self._recv_line_gen()
+            self.connected = True
+        except OSError as e:
+            # Exceptions I've seen trigger this:
+            # - OSError: [Errno 118] EHOSTUNREACH
+            print('ERR connect: "%s", errno=%d', e, e.errno)
+            self.connected = False
+
+    def register(self, timeout=30):
+        if not self.connected:
+            return False
+        self.sock.settimeout(timeout)
+        try:
             msg = (
                 'NICK {0}\r\n'
                 'USER {0} 0 * :{0}\r\n'
                 'JOIN {1}\r\n'
                 ).format(self.nick, self.chan)
             self.sock.sendall(msg.encode())
+            # This might fail, but for now assume it worked
+            self.registered = True
         except OSError as e:
-            # Exceptions I've seen trigger this:
-            # - OSError: [Errno 118] EHOSTUNREACH
-            print('ERR connect: "%s", errno=%d', e, e.errno)
+            print('ERR register: "%s", errno=%d', e, e.errno)
             return False
         return True
 
     def _recv_line_gen(self, timeout=1):
         # This generator wraps Socket.recv_into() to provide line buffering
+        if not self.connected:
+            return None
         self.sock.settimeout(timeout)
         buf = self.rx_buf
         line = self.line_buf
@@ -134,3 +155,13 @@ class IRCBot:
             self.sock.sendall(msg.encode())
         except OSError as e:
             print('ERR pong: "%s", errno=%d', e, e.errno)
+
+    # Context handlers
+
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+        return False  # don't suppress exceptions

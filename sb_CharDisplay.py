@@ -89,7 +89,7 @@ class CharDisplay:
             lines.append(text[start:])
         return '\n'.join(lines)
 
-    def show_msg(self, txt, hardwrap=True):
+    def show_msg(self, txt, hardwrap=False):
         # Show the message text on available display
         print(txt)
         if hardwrap:

@@ -7,6 +7,7 @@ import board
 from microcontroller import cpu
 from micropython import const
 import os
+import time
 import wifi
 
 from sb_CharDisplay import CharDisplay
@@ -85,37 +86,67 @@ def run():
     if 'esp32s3' in board.board_id:
         cpu.frequency = 80_000_000
 
-    # Wifi Up
-    cd.show_msg("Connecting...")
-    ip = wifi_connect()
-    if ip:
-        cd.show_msg('Connected as {}'.format(ip), hardwrap=False)
-    else:
-        cd.show_msg('Wifi Error Check Settings', hardwrap=False)
-
-    # IRC Up
-    # TODO: Handle Possible Connect Errors:
-    # - 433 * tftbot :Nickname already in use
-    print("Opening TCP connection to IRC server")
-    irc = IRCBot(IRC_NICK, IRC_CHAN, IRC_SERVER, port=6667)
-    ok = irc.connect()
-
-    # Main loop
+    # Wrap the radio stuff in a big retry loop
+    RETRY_S = const(5)
+    RETRY_S_MAX = const(180)
     while True:
-        while (line := irc.recv_line()) is not None:
-            (prefix, cmd, params) = line
-            print(cmd, params)
-            if cmd == '433':
-                cd.show_msg('IRC: Nick in use')
-            elif cmd == 'PING':
-                irc.pong(params)
-            elif cmd == 'JOIN':
-                cd.show_msg('Joined %s' % params[1:])    # skip leading ':'
-            elif cmd == 'PRIVMSG':
-                # For messages, strip the channel then show the rest.
-                # Typical params format is like: `#channel :blah blah blah`
-                if (start := params.find(':')) > -1:
-                    cd.show_msg(params[start+1:])
+
+        # Wifi Up
+        wifi_retry = RETRY_S
+        while True:
+            cd.show_msg("WiFi Connect...")
+            wifi.radio.enabled = True
+            ip = wifi_connect()
+            if ip:
+                cd.show_msg('WiFi IP is %s' % ip)
+                break
+            else:
+                # Wifi problem: sleep for a bit then try again
+                cd.show_msg('Wifi Down')
+                wifi.radio.enabled = False
+                time.sleep(wifi_retry)
+                wifi_retry = min(RETRY_S_MAX, wifi_retry * 2)
+                continue
+
+        # IRC Up
+        irc_retry = RETRY_S
+        cd.show_msg("IRC Connect...")
+        radio = wifi.radio
+        with IRCBot(IRC_NICK, IRC_CHAN, IRC_SERVER, port=6667) as irc:
+            while radio.connected and not irc.connected:
+                # If initial connect failed, retry with exponential backoff
+                time.sleep(irc_retry)
+                irc_retry = min(RETRY_S_MAX, irc_retry * 2)
+                irc.connect()
+
+            irc.register()
+
+            # Main IRC bot loop
+            irc_retry = RETRY_S
+            while radio.connected and irc.connected:
+                line = irc.recv_line()
+                if line is None:
+                    time.sleep(0.001)
+                    continue
+                (prefix, cmd, params) = line
+                print(cmd, params)
+                if cmd == '433':
+                    # - 433 * <nick> :Nickname already in use
+                    cd.show_msg('IRC: Nick in use')
+                    irc.registered = False
+                    time.sleep(irc_retry)
+                    irc_retry = min(RETRY_S_MAX, irc_retry * 2)
+                    irc.register()
+                elif cmd == 'PING':
+                    irc.pong(params)
+                elif cmd == 'JOIN':
+                    # This trims the leading ':' off the channel name
+                    cd.show_msg('Joined %s' % params[1:])
+                elif cmd == 'PRIVMSG':
+                    # For messages, strip channel then show the rest
+                    # Typical params format: `#chan :blah blah...`
+                    if (start := params.find(':')) > -1:
+                        cd.show_msg(params[start+1:], hardwrap=True)
 
 
 # ---
