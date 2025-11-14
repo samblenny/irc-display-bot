@@ -139,8 +139,11 @@ def run():
                 elif cmd == 'PING':
                     irc.pong(params)
                 elif cmd == 'JOIN':
-                    # This trims the leading ':' off the channel name
-                    cd.show_msg('Joined %s' % params[1:])
+                    my_nick = ':%s!' % IRC_NICK
+                    if prefix and prefix.find(my_nick) == 0:
+                        # Only notify when I join. Ignore other users.
+                        # This trims the leading ':' off the channel name
+                        cd.show_msg('Joined %s' % params[1:])
                 elif cmd == 'PRIVMSG':
                     # For messages, strip channel then show the rest
                     # Typical params format: `#chan :blah blah...`
