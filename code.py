@@ -150,7 +150,7 @@ def run():
                         # first word after the `!pre` is the delimeter that
                         # gets replaced with line breaks
                         text = params[i+6:]
-                        if len(text) > 1:
+                        if len(text) >= 1:
                             delim = text[0]
                             text = text[1:].replace(delim, '\n')
                             cd.show_msg(text, wrap='pre')
