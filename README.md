@@ -214,12 +214,64 @@ skip those steps.
    sudo systemctl restart ngircd
    ```
 
-3. (Optional) Make systemd services to turn off the activity and power LEDs
+3. (Optional) Configure the ngircd server to have a persistent `#sensors`
+   channel, to have an operator user, and to disable some unnecessary default
+   features.
 
-   You can turn off the Pi LEDs by echoing "none" into
+   I've found these changes to be convenient when working on bots and bringing
+   up a new sensor network installation with irc-display-bot,
+   [serial-sensor-hub](https://github.com/samblenny/serial-sensor-hub), and a
+   regular `irssi` chat window. Without the config changes, channel op status
+   can get weird depending on which clients connect and disconnect in what
+   order. The options stuff is just to make the protocol less chatty so my
+   terminal doesn't fill up with useless log messages while working on bots.
+
+   First, begin editing the ngircd config file with:
+
+   ```
+   sudo nano /etc/ngircd/ngircd.conf
+   ```
+
+   Scroll down to the end of the file, paste this stuff at the bottom, edit the
+   operator name and password to whatever you like, then save the file and exit
+   nano:
+
+   ```
+   [Channel]
+   Name = #sensors
+   Modes = nt
+
+   [Operator]
+   Name = admin
+   Password = notMyRealPassword
+
+   [Options]
+   DNS = no
+   Ident = no
+   MorePrivacy = yes
+   ScrubCTCP = yes
+   ```
+
+   Check that you didn't make any typos by running:
+
+   ```
+   ngircd --configtest
+   ```
+
+   If configtest didn't complain about anything, then restart ngircd:
+
+   ```
+   sudo systemctl restart ngircd
+   ```
+
+4. (Optional) Make systemd services to turn off the activity and power LEDs
+
+   You can turn off the Raspberry Pi LEDs by echoing "none" into
    `/sys/class/leds/ACT/trigger` and `/sys/class/leds/PWR/trigger`, but the
    effect doesn't persist across a reboot. To make the change permanent, you
-   can make a simple systemd service to run a shell command at boot.
+   can make a simple systemd service to run a shell command at boot. I like
+   this so I don't get distracted by things blinking at me in my peripheral
+   vision. Maybe you like the blinkenlights though. Your choice.
 
    First, create a new systemd service file:
    ```
