@@ -144,23 +144,48 @@ def run():
                         # Only notify when I join. Ignore other users.
                         # This trims the leading ':' off the channel name
                         cd.show_msg('Joined %s' % params[1:])
-                elif cmd == 'PRIVMSG':
-                    # For messages, strip channel then show the rest
-                    # Typical params format: `#chan :blah blah...`
-                    if (i := params.find(':!pre ')) > -1:
+                elif cmd == '332':
+                    # Channel topic notification for JOIN
+                    # Typical cmd+params format: `332 tftbot #sensors :!pre /`
+                    nickchan = '%s %s :' % (IRC_NICK, IRC_CHAN)
+                    pre = '!pre '
+                    if not params.startswith(nickchan):
+                        continue
+                    text = params[len(nickchan):]
+                    if text.startswith(pre):
                         # bot mode for displaying preformatted text with
                         # dynamically slectable line delimeters: first char of
                         # first word after the `!pre` is the delimeter that
                         # gets replaced with line breaks
-                        text = params[i+6:]
+                        text = text[len(pre):]
                         if len(text) >= 1:
                             delim = text[0]
                             text = text[1:].replace(delim, '\n')
                             cd.show_msg(text, wrap='pre')
-                    elif (i := params.find(':')) > -1:
+                    else:
                         # Default to hard wrapping lines
-                        cd.show_msg(params[i+1:], wrap='hard')
-
+                        cd.show_msg(text, wrap='hard')
+                elif cmd == 'TOPIC':
+                    # Channel topic notifiction after JOIN
+                    # Typical cmd+param format: `TOPIC #sensors :!pre /...`
+                    chan = '%s :' % IRC_CHAN
+                    pre = '!pre '
+                    if not params.startswith(chan):
+                        continue
+                    text = params[len(chan):]
+                    if text.startswith(pre):
+                        # bot mode for displaying preformatted text with
+                        # dynamically slectable line delimeters: first char of
+                        # first word after the `!pre` is the delimeter that
+                        # gets replaced with line breaks
+                        text = text[len(pre):]
+                        if len(text) >= 1:
+                            delim = text[0]
+                            text = text[1:].replace(delim, '\n')
+                            cd.show_msg(text, wrap='pre')
+                    else:
+                        # Default to hard wrapping lines
+                        cd.show_msg(text, wrap='hard')
 
 # ---
 # Main entry point

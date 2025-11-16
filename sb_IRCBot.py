@@ -155,7 +155,6 @@ class IRCBot:
         # Send a PONG to keep the connection alive (params type is string)
         try:
             msg = 'PONG {}\r\n'.format(params)
-            print(msg)
             self.sock.sendall(msg.encode())
         except OSError as e:
             print('ERR pong: "%s", errno=%d', e, e.errno)
