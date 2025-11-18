@@ -10,8 +10,8 @@ import os
 import time
 import wifi
 
-from sb_CharDisplay import CharDisplay
-from sb_IRCBot import IRCBot
+from sb_chardisplay import CharDisplay
+from sb_ircbot import IRCBot
 
 
 # ---------------------------------------------------------------------------
