@@ -124,7 +124,7 @@ In raspi-config:
 - Advanced Options > WLAN Power Save > select No (improve wifi reliability)
 
 
-### Router Configuration for Reserve IP Address
+### Router Configuration for Reserved IP Address
 
 Running a local IRC server on your home network will work better if your
 Raspberry Pi has an IP address that doesn't change. For typical home wifi
@@ -282,7 +282,7 @@ skip those steps.
    ```
    [Channel]
    Name = #sensors
-   Modes = nt
+   Modes = n
 
    [Operator]
    Name = admin
