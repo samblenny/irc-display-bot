@@ -2,8 +2,6 @@
 <!-- SPDX-FileCopyrightText: Copyright 2025 Sam Blenny -->
 # IRC Display Bot
 
-**DRAFT: WORK IN PROGRESS**
-
 CircuitPython IRC bot to show status notifications on a small dedicated screen.
 
 
