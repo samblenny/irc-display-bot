@@ -2,8 +2,53 @@
 <!-- SPDX-FileCopyrightText: Copyright 2025 Sam Blenny -->
 # IRC Display Bot
 
+![irc-display-bot.jpeg](irc-display-bot.jpeg)
+
 CircuitPython IRC bot to show status notifications on a small dedicated screen.
 
+
+## Hardware
+
+The code here is written for:
+
+- [Adafruit Metro ESP32-S3](https://www.adafruit.com/product/5500)
+- [Adafruit 2.8" TFT Touch Shield \#1651](https://www.adafruit.com/product/1651)
+
+It should be pretty straightforward to adapt for other boards and displays so
+long as they have enough room for 2, 4, or more 16-character monospace lines of
+text.
+
+
+## Install & Setup
+
+You will need to:
+1. Update your Metro ESP32-S3 to CircuitPython 10.0.3 *BEFORE* attaching the
+   TFT display so that you can reach the Boot button
+2. Attach the TFT display
+3. Get the project bundle from the release page and copy its code and library
+   files from the 10.x directory to your board's `CIRCUITPY` drive
+4. **MOST IMPORTANTLY**: You need to put your wifi credentials and IRC server
+   details in **settings.toml**. Without filling in settings, it won't work!
+
+
+### Example settings.toml
+
+Your settings.toml file should have the following environment variables, but
+you'll need to edit their values to match your wifi network and IRC server.
+The connection code is built for easy setup on a local Raspberry Pi over
+private wifi. So, it doesn't do TLS, and it doesn't do passwords. The port is
+hardcoded to 6667, but you can edit the code to change it. If you want to use
+this with my serial-sensor-bot code, you can pick the channel. Just make sure
+they're both configured to use the same one.
+
+```
+ILI9341_DISPLAY = 1
+WIFI_SSID = "your-wifi-ssid"
+WIFI_PASSWORD = "your-wifi-password"
+IRC_SERVER = "192.168.0.200"
+IRC_NICK = "tftbot"
+IRC_CHAN = "#sensors"
+```
 
 ## Set Up Raspberry Pi OS with IRC Server
 
