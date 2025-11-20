@@ -14,42 +14,45 @@ from adafruit_ili9341 import ILI9341
 
 
 class CharDisplay:
-    def __init__(self, use_ILI9341=True, width=16):
+    def __init__(self, width=16):
         # Try to initialize 2.8" TFT display shield with ILI9341 chip
-        self.ILI9341 = ILI9341
-        display = None
-        textbox = None
-        if use_ILI9341:
-            displayio.release_displays()
-            spi = board.SPI()
-            tft_cs = board.D10
-            tft_dc = board.D9
-            display_bus = FourWire(spi, command=tft_dc, chip_select=tft_cs)
-            display = ILI9341(display_bus, width=320, height=240,
-                rotation=180, auto_refresh=False)
-            group = displayio.Group()
-            display.root_group = group
-            display.refresh()
-            textbox = label.Label(font=terminalio.FONT, scale=3,
-                color=0xefef00)
-            textbox.anchor_point = (0, 0)
-            textbox.anchored_position = (16, 16)
-            group.append(textbox)
-            # Set an atexit handler to release the display once code.py
-            # ends. This is an aesthetic filter to prevent CircuitPython's
-            # supervisor from hijacking the display to show its own stuff.
-            def atexit_shutdown_display():
-                # This is using a closure to reference display and textbox
-                try:
-                    textbox.text = 'offline'
-                    display.refresh()
-                    displayio.release_displays()
-                except AttributeError:
-                    pass
+        displayio.release_displays()
+        spi = board.SPI()
+        tft_cs = board.D10
+        tft_dc = board.D9
+        display_bus = FourWire(spi, command=tft_dc, chip_select=tft_cs)
+        display = ILI9341(display_bus, width=320, height=240,
+            rotation=180, auto_refresh=False)
+        group = displayio.Group()
+        display.root_group = group
+        display.refresh()
+        # System status textbox: scale=1, one line, very top of display
+        status = label.Label(font=terminalio.FONT, scale=1, color=0x80ef00)
+        status.anchor_point = (1, 0)
+        status.anchored_position = (316, 4)
+        status.line_spacing = 1.0  # default is 1.25
+        group.append(status)
+        # IRC topic textbox: scale=3, 6 lines, this is for IRC notifications
+        topic = label.Label(font=terminalio.FONT, scale=3, color=0xefef00)
+        topic.anchor_point = (0, 0)
+        topic.anchored_position = (8, 16)
+        topic.line_spacing = 1.0  # default is 1.25
+        group.append(topic)
+        # Set an atexit handler to release the display once code.py
+        # ends. This is an aesthetic filter to prevent CircuitPython's
+        # supervisor from hijacking the display to show its own stuff.
+        def atexit_shutdown_display():
+            try:
+                status.text = 'OFFLINE'
+                display.refresh()
+                displayio.release_displays()
+            except AttributeError:
+                pass
 
-            atexit.register(atexit_shutdown_display)
+        atexit.register(atexit_shutdown_display)
         self.display = display
-        self.textbox = textbox
+        self.status = status
+        self.topic = topic
         self.width = width
 
     def hard_wrap(self, text):
@@ -89,15 +92,20 @@ class CharDisplay:
             lines.append(text[start:])
         return '\n'.join(lines)
 
-    def show_msg(self, txt, wrap=None):
-        # Show the message text on available display
-        print(txt)
+    def set_status(self, txt):
+        # Show the message text the top status line
+        print("status =", txt)
+        self.status.text = txt
+        self.display.refresh()
+
+    def set_topic(self, txt, wrap=None):
+        # Show the message text in the 6x16 character display IRC topic area
+        print("topic =", txt)
         if wrap == 'hard':
             wrapped = self.hard_wrap(txt)
         elif wrap == 'word' or wrap is None:
             wrapped = self.word_wrap(txt)
         elif wrap == 'pre':
             wrapped = txt
-        if self.display and self.textbox:
-            self.textbox.text = wrapped
-            self.display.refresh()
+        self.topic.text = wrapped
+        self.display.refresh()

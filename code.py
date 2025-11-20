@@ -16,15 +16,11 @@ from sb_ircbot import IRCBot
 
 # ---------------------------------------------------------------------------
 # Options for settings.toml
-# - `ILI9341_DISPLAY = 1` use 2.8" TFT display shield with ILI9341 chip
 # - `WIFI_SSID = "your ssid"` set the SSID to use for your wifi
 # - `WIFI_PASSWORD = "the password"` set password for your wifi
 # - `IRC_SERVER = "<some IP address>"` set IP address for your IRC server
 # - `IRC_NICK = "<nickname>"` set nickname to use for your IRC server
 #
-ILI9341_DISPLAY = False
-if (val := os.getenv("ILI9341_DISPLAY")) is not None:
-    ILI9341_DISPLAY = bool(val)
 WIFI_SSID = None
 if (val := os.getenv("WIFI_SSID")) is not None:
     WIFI_SSID = str(val)
@@ -49,7 +45,6 @@ def print_settings_banner():
     m = 'missing'
     print()
     print(heading)
-    print('# ILI9341_DISPLAY = %d' % ILI9341_DISPLAY)
     print('# WIFI_SSID: [%s]' % (m if WIFI_SSID is None else 'ok'))
     print('# WIFI_PASSWORD: [%s]' % (m if WIFI_PASSWORD is None else 'ok'))
     print('# IRC_SERVER: [%s]' % (m if IRC_SERVER is None else 'ok'))
@@ -88,28 +83,25 @@ def run():
     # Wrap the radio stuff in a big retry loop
     RETRY_S = const(5)
     RETRY_S_MAX = const(180)
+    WIFI_RETRY = const(20)
     while True:
 
         # Wifi Up
-        wifi_retry = RETRY_S
         while True:
-            cd.show_msg("WiFi Connect...")
-            wifi.radio.enabled = True
+            cd.set_status("WiFi Connect...")
             ip = wifi_connect()
             if ip:
-                cd.show_msg('WiFi IP is %s' % ip)
+                cd.set_status('WiFi IP is %s' % ip)
                 break
             else:
                 # Wifi problem: sleep for a bit then try again
-                cd.show_msg('Wifi Down')
-                wifi.radio.enabled = False
-                time.sleep(wifi_retry)
-                wifi_retry = min(RETRY_S_MAX, wifi_retry * 2)
+                cd.set_status('Wifi Down')
+                time.sleep(WIFI_RETRY)
                 continue
 
         # IRC Up
         irc_retry = RETRY_S
-        cd.show_msg("IRC Connect...")
+        cd.set_status("IRC Connect...")
         radio = wifi.radio
         with IRCBot(IRC_NICK, IRC_CHAN, IRC_SERVER, port=6667) as irc:
             while radio.connected and not irc.connected:
@@ -131,7 +123,7 @@ def run():
                 print(cmd, params)
                 if cmd == '433':
                     # - 433 * <nick> :Nickname already in use
-                    cd.show_msg('IRC: Nick in use')
+                    cd.set_status('IRC: Nick in use')
                     irc.registered = False
                     time.sleep(irc_retry)
                     irc_retry = min(RETRY_S_MAX, irc_retry * 2)
@@ -141,9 +133,9 @@ def run():
                 elif cmd == 'JOIN':
                     my_nick = ':%s!' % IRC_NICK
                     if prefix and prefix.find(my_nick) == 0:
-                        # Only notify when I join. Ignore other users.
-                        # This trims the leading ':' off the channel name
-                        cd.show_msg('Joined %s' % params[1:])
+                        # Set status line to channel name when I join. Ignore
+                        # join notifications about other users.
+                        cd.set_status(params[1:])  # slice off leading ':'
                 elif cmd == '332':
                     # Channel topic notification for JOIN
                     # Typical cmd+params format: `332 tftbot #sensors :!pre /`
@@ -161,10 +153,10 @@ def run():
                         if len(text) >= 1:
                             delim = text[0]
                             text = text[1:].replace(delim, '\n')
-                            cd.show_msg(text, wrap='pre')
+                            cd.set_topic(text, wrap='pre')
                     else:
                         # Default to hard wrapping lines
-                        cd.show_msg(text, wrap='hard')
+                        cd.set_topic(text, wrap='hard')
                 elif cmd == 'TOPIC':
                     # Channel topic notifiction after JOIN
                     # Typical cmd+param format: `TOPIC #sensors :!pre /...`
@@ -182,10 +174,10 @@ def run():
                         if len(text) >= 1:
                             delim = text[0]
                             text = text[1:].replace(delim, '\n')
-                            cd.show_msg(text, wrap='pre')
+                            cd.set_topic(text, wrap='pre')
                     else:
                         # Default to hard wrapping lines
-                        cd.show_msg(text, wrap='hard')
+                        cd.set_topic(text, wrap='hard')
 
 # ---
 # Main entry point

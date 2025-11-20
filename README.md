@@ -42,7 +42,6 @@ this with my serial-sensor-bot code, you can pick the channel. Just make sure
 they're both configured to use the same one.
 
 ```
-ILI9341_DISPLAY = 1
 WIFI_SSID = "your-wifi-ssid"
 WIFI_PASSWORD = "your-wifi-password"
 IRC_SERVER = "192.168.0.200"
