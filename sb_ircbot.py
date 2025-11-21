@@ -31,6 +31,7 @@ class IRCBot:
     def close(self):
         self.sock.close()
         self.connected = False
+        self.registered = False
 
     def connect(self):
         try:

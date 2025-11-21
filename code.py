@@ -84,50 +84,69 @@ def run():
     RETRY_S = const(5)
     RETRY_S_MAX = const(180)
     WIFI_RETRY = const(20)
+    READ_TIME = const(0.8) # give me time to read the screen
+    irc_retry = RETRY_S
     while True:
 
-        # Wifi Up
-        while True:
-            cd.set_status("WiFi Connect...")
-            ip = wifi_connect()
-            if ip:
-                cd.set_status('WiFi IP is %s' % ip)
-                break
-            else:
-                # Wifi problem: sleep for a bit then try again
-                cd.set_status('Wifi Down')
-                time.sleep(WIFI_RETRY)
-                continue
+        # Ensure Wifi is up
+        if not wifi.radio.connected:
+            while True:
+                cd.set_status("WiFi Connect...")
+                time.sleep(READ_TIME)
+                ip = wifi_connect()
+                if ip:
+                    cd.set_status('WiFi IP is %s' % ip)
+                    time.sleep(READ_TIME)
+                    break
+                else:
+                    # Wifi problem: sleep for a bit then try again
+                    cd.set_status('Wifi Down')
+                    time.sleep(WIFI_RETRY)
+                    continue
+        else:
+            cd.set_status("WiFi already connected")
+            time.sleep(READ_TIME)
 
-        # IRC Up
-        irc_retry = RETRY_S
+        # Ensure IRC is up, then start responding to IRC messages
         cd.set_status("IRC Connect...")
+        time.sleep(READ_TIME)
         radio = wifi.radio
         with IRCBot(IRC_NICK, IRC_CHAN, IRC_SERVER, port=6667) as irc:
             while radio.connected and not irc.connected:
                 # If initial connect failed, retry with exponential backoff
                 time.sleep(irc_retry)
                 irc_retry = min(RETRY_S_MAX, irc_retry * 2)
+                cd.set_status('IRC Connect Retry...')
+                time.sleep(READ_TIME)
                 irc.connect()
 
             irc.register()
 
             # Main IRC bot loop
-            irc_retry = RETRY_S
+            last_rx = time.monotonic()
+            PING_TIMEOUT = const(200)
             while radio.connected and irc.connected:
                 line = irc.recv_line()
                 if line is None:
-                    time.sleep(0.001)
+                    if time.monotonic() - last_rx > PING_TIMEOUT:
+                        # Something's wrong. It's too quiet. Close & reconnect
+                        cd.set_status('IRC: connection timeout')
+                        irc.close()
+                        time.sleep(irc_retry)
+                        irc_retry = min(RETRY_S_MAX, irc_retry * 2)
+                        break
+                    time.sleep(0.010)
                     continue
+                last_rx = time.monotonic()
                 (prefix, cmd, params) = line
                 print(cmd, params)
                 if cmd == '433':
                     # - 433 * <nick> :Nickname already in use
                     cd.set_status('IRC: Nick in use')
-                    irc.registered = False
+                    irc.close()
                     time.sleep(irc_retry)
                     irc_retry = min(RETRY_S_MAX, irc_retry * 2)
-                    irc.register()
+                    break
                 elif cmd == 'PING':
                     irc.pong(params)
                 elif cmd == 'JOIN':
@@ -136,6 +155,8 @@ def run():
                         # Set status line to channel name when I join. Ignore
                         # join notifications about other users.
                         cd.set_status(params[1:])  # slice off leading ':'
+                        # SUCCESS: Joined OK, so reset the retry interval
+                        irc_retry = RETRY_S
                 elif cmd == '332':
                     # Channel topic notification for JOIN
                     # Typical cmd+params format: `332 tftbot #sensors :!pre /`
