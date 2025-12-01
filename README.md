@@ -2,6 +2,8 @@
 <!-- SPDX-FileCopyrightText: Copyright 2025 Sam Blenny -->
 # IRC Display Bot
 
+![irc-display-bot-enclosure-overhead-right.jpeg](enclosure/irc-display-bot-enclosure-overhead-right.jpeg)
+
 ![irc-display-bot.jpeg](irc-display-bot.jpeg)
 
 CircuitPython IRC bot to show status notifications on a small dedicated screen.
@@ -17,6 +19,13 @@ The code here is written for:
 It should be pretty straightforward to adapt for other boards and displays so
 long as they have enough room for 2, 4, or more 16-character monospace lines of
 text.
+
+There's an optional 3d-printable enclosure to angle the display at 15° and make
+it look a bit nicer on a desk or table. The STL files, Blender design file, and
+some related photos and screenshots are in the [enclosure/](enclosure) folder.
+To assemble the base and bezel, use four 2-28x5/16" thread rolling screws. If
+you're not familiar with 2-28 thread rolling screws, they work really well to
+self-tap into 2mm plastic holes with a 4.5mm countersink for the screw head.
 
 
 ## Install & Setup
